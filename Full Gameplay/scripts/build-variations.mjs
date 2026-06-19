@@ -56,6 +56,13 @@ function assertBuildOutput(variation, outputFile) {
   if (!html.includes("audioFinished") || !html.includes("EndScene")) {
     throw new Error(`${variation.mode} build is missing the EndScene finished-audio path.`);
   }
+  if (
+    !html.includes("getTrayCoinBasePoint") ||
+    !html.includes("selectedLiftBasePoints") ||
+    !html.includes("shakeTrayFrontStack")
+  ) {
+    throw new Error(`${variation.mode} build is missing the corrected selection lift/shake logic.`);
+  }
   if (bytes >= maxPlayableBytes) {
     throw new Error(`${variation.mode} build is ${bytes} bytes, exceeding the 5 MB playable limit.`);
   }
