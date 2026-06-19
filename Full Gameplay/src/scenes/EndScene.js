@@ -41,6 +41,9 @@ export class EndScene extends Phaser.Scene {
       }
       this.ctaTween?.stop();
       this.rayTween?.stop();
+      this.raysIntroTween?.stop();
+      this.logoIntroTween?.stop();
+      this.buttonIntroTween?.stop();
       this.endSceneFinishedSound?.stop();
       this.endSceneFinishedSound?.destroy();
     });
@@ -61,23 +64,46 @@ export class EndScene extends Phaser.Scene {
 
   playIntro() {
     this.cameras.main.fadeIn(260, 255, 255, 255);
-    this.logo.setAlpha(0).setScale(this.logo.scaleX * 0.75, this.logo.scaleY * 0.75);
-    this.tweens.add({
+    this.rays.setAlpha(0).setScale(0.28);
+    this.logo.setAlpha(0).setScale(this.logoBaseScale * 0.3);
+    this.playButton.setAlpha(0).setScale(this.buttonBaseScale * 0.25);
+
+    this.raysIntroTween = this.tweens.add({
+      targets: this.rays,
+      alpha: 0.82,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 560,
+      ease: "Back.Out",
+    });
+    this.logoIntroTween = this.tweens.add({
       targets: this.logo,
       alpha: 1,
       scaleX: this.logoBaseScale,
       scaleY: this.logoBaseScale,
-      duration: 420,
+      duration: 540,
+      delay: 110,
       ease: "Back.Out",
     });
-    this.ctaTween = this.tweens.add({
+    this.buttonIntroTween = this.tweens.add({
       targets: this.playButton,
-      scaleX: this.buttonBaseScale * 1.06,
-      scaleY: this.buttonBaseScale * 1.06,
+      alpha: 1,
+      scaleX: this.buttonBaseScale,
+      scaleY: this.buttonBaseScale,
       duration: 560,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.InOut",
+      delay: 260,
+      ease: "Back.Out",
+      onComplete: () => {
+        this.ctaTween = this.tweens.add({
+          targets: this.playButton,
+          scaleX: this.buttonBaseScale * 1.06,
+          scaleY: this.buttonBaseScale * 1.06,
+          duration: 560,
+          yoyo: true,
+          repeat: -1,
+          ease: "Sine.InOut",
+        });
+      },
     });
     this.rayTween = this.tweens.add({
       targets: this.rays,
