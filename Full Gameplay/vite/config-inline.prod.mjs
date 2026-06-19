@@ -168,9 +168,10 @@ export default defineConfig({
           .replace(/\s*crossorigin(="[^"]*")?/g, "")
           .replace(/<script\s+/g, "<script defer ");
         const comment = networkComments[adNetworkType] || `<!-- ad-network: ${adNetworkType} | ${adNetworkType} -->`;
-        return cleaned.startsWith("<!-- ad-network:")
-          ? cleaned
-          : `${comment}\n${cleaned}`;
+        const body = cleaned
+          .replace(/^<!-- ad-network:.*?-->\s*/s, "")
+          .replace(/^<!-- build-mode:.*?-->\s*/s, "");
+        return `${comment}\n<!-- build-mode: ${buildMode} -->\n${body}`;
       },
       apply: "build"
     }

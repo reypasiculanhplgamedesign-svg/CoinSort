@@ -118,6 +118,11 @@ const TRAY_COIN_SIZE = {
   dragH: 16,
 };
 
+const TRAY_COIN_INNER_BOUNDS = {
+  top: -27,
+  bottom: 22,
+};
+
 const BOARD_ROWS = 4;
 const BOARD_COLS = 5;
 const TRAY_CAPACITY = 10;
@@ -213,6 +218,7 @@ export class Game extends Phaser.Scene {
   createBaseObjects() {
     this.background = this.add.graphics().setDepth(DEPTH.background);
     this.checkGraphics = this.add.graphics().setDepth(DEPTH.fx).setVisible(false);
+    this.selectedStackHighlight = this.add.graphics().setDepth(DEPTH.fx).setVisible(false);
   }
 
   createProducts() {
@@ -297,6 +303,7 @@ export class Game extends Phaser.Scene {
         tray.slotRow = row;
         tray.trayId = `tray-${row}-${col}`;
         tray.setInteractive({ cursor: "pointer" });
+        this.input.setDraggable(tray);
         this.trays.push(tray);
         this.trayHighlights.set(tray.trayId, highlight);
         this.trayStates.push({
@@ -577,39 +584,43 @@ export class Game extends Phaser.Scene {
 
   setGuidedStep(index) {
     this.stepIndex = index;
-    const step = GUIDED_STEPS[this.stepIndex];
     this.highlightDeal(false);
     this.highlightMerge(false);
     this.clearCoinHighlights();
 
-    if (!step || !this.layout) {
+    if (!this.layout) {
       this.clearHandGuide();
       return;
     }
 
-    if (step.type === "deal") {
+    const guide = this.getGameAwareHandGuide();
+    if (!guide) {
+      this.clearHandGuide();
+      return;
+    }
+
+    if (guide.type === "deal") {
       this.highlightDeal(true);
-      this.animateHand({ x: this.dx(111), y: this.dy(418) }, { x: this.dx(107), y: this.dy(399) }, false);
+      this.animateHand(guide.start, guide.end, false);
       return;
     }
 
-    if (step.type === "merge") {
+    if (guide.type === "merge") {
       this.highlightMerge(true);
-      this.highlightCoinGroup(this.currentMergeCoinIds);
-      this.animateHand({ x: this.dx(183), y: this.dy(418) }, { x: this.dx(177), y: this.dy(399) }, false);
+      this.highlightCoinGroup(guide.coinIds);
+      this.animateHand(guide.start, guide.end, true);
       return;
     }
 
-    if (step.type === "buy") {
-      this.highlightBuyableProducts(step.value);
-      this.animateHand({ x: this.dx(124), y: this.dy(133) }, { x: this.dx(this.activeCard.layout.buyX), y: this.dy(this.activeCard.layout.buyY) }, false);
+    if (guide.type === "buy") {
+      this.highlightBuyableProducts(guide.value);
+      this.animateHand(guide.start, guide.end, false);
       return;
     }
 
-    if (step.type === "wrongProduct") {
-      const wrongCard = this.menuCards.find((card) => card.product.id === "soda") || this.menuCards[1];
-      this.wrongCard = wrongCard;
-      this.animateHand({ x: this.dx(wrongCard.layout.buyX + 5), y: this.dy(wrongCard.layout.buyY + 8) }, { x: this.dx(wrongCard.layout.buyX), y: this.dy(wrongCard.layout.buyY) }, false);
+    if (guide.type === "transfer") {
+      this.highlightTrayCoin(guide.coin);
+      this.animateHand(guide.start, guide.end, true);
     }
   }
 
@@ -679,14 +690,11 @@ export class Game extends Phaser.Scene {
       return;
     }
 
-    const topCoin = this.getTopCoinInTray(targetTray);
-    if (topCoin) {
-      this.selectCoinStack(topCoin, targetTray);
-    }
+    this.selectTrayFrontStack(targetTray);
   }
 
   selectCoinStack(coin, sourceTray = this.getTrayStateByCoin(coin)) {
-    if (!sourceTray || !this.isTopCoin(coin, sourceTray)) {
+    if (!sourceTray || !this.isFrontStackCoin(coin, sourceTray)) {
       return;
     }
 
@@ -698,16 +706,71 @@ export class Game extends Phaser.Scene {
     this.hand.setVisible(false);
     this.handTween?.stop();
     this.selectedSourceTray = sourceTray;
-    this.selectedCoinLevel = coin.value;
+    this.selectedCoinLevel = sourceTray.coins[sourceTray.coins.length - 1];
     this.selectedCoinCount = this.getFrontStackCount(sourceTray);
     this.selectedStackSprites = this.getFrontStackSprites(sourceTray, this.selectedCoinCount);
+    this.showSelectedCoinStackFeedback();
   }
 
   clearSelectedCoinStack() {
+    this.clearSelectedCoinStackFeedback();
     this.selectedSourceTray = null;
     this.selectedCoinLevel = null;
     this.selectedCoinCount = 0;
     this.selectedStackSprites = null;
+  }
+
+  selectTrayFrontStack(tray) {
+    const topCoin = this.getTopCoinInTray(tray);
+    if (topCoin) {
+      this.selectCoinStack(topCoin, tray);
+    }
+  }
+
+  switchSelectionOrBounce(targetTray) {
+    if (!targetTray || targetTray === this.selectedSourceTray || !targetTray.coins.length) {
+      return;
+    }
+
+    const targetCoin = this.getTopCoinInTray(targetTray);
+    if (!targetCoin) {
+      return;
+    }
+
+    this.clearSelectedCoinStack();
+    this.selectCoinStack(targetCoin, targetTray);
+  }
+
+  showSelectedCoinStackFeedback() {
+    if (!this.selectedStackHighlight || !this.selectedStackSprites?.length) {
+      return;
+    }
+
+    let minX = Number.POSITIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+    for (let index = 0; index < this.selectedStackSprites.length; index += 1) {
+      const sprite = this.selectedStackSprites[index];
+      minX = Math.min(minX, sprite.x - sprite.displayWidth * 0.5);
+      minY = Math.min(minY, sprite.y - sprite.displayHeight * 0.5);
+      maxX = Math.max(maxX, sprite.x + sprite.displayWidth * 0.5);
+      maxY = Math.max(maxY, sprite.y + sprite.displayHeight * 0.5);
+    }
+
+    const padX = this.ds(2.2);
+    const padY = this.ds(2.4);
+    this.selectedStackHighlight
+      .clear()
+      .setVisible(true)
+      .lineStyle(this.ds(1.6), 0xffffff, 0.95)
+      .strokeRoundedRect(minX - padX, minY - padY, maxX - minX + padX * 2, maxY - minY + padY * 2, this.ds(4))
+      .lineStyle(this.ds(1), 0x29d650, 0.95)
+      .strokeRoundedRect(minX - padX * 1.45, minY - padY * 1.45, maxX - minX + padX * 2.9, maxY - minY + padY * 2.9, this.ds(5));
+  }
+
+  clearSelectedCoinStackFeedback() {
+    this.selectedStackHighlight?.clear().setVisible(false);
   }
 
   tryMoveSelectedStackToTray(destinationTray) {
@@ -720,6 +783,7 @@ export class Game extends Phaser.Scene {
       )
     ) {
       this.audio.play("wrong");
+      this.switchSelectionOrBounce(destinationTray);
       return false;
     }
 
@@ -741,31 +805,34 @@ export class Game extends Phaser.Scene {
       return;
     }
 
-    const sourceTray = this.getTrayStateByCoin(gameObject);
-    if (!sourceTray || !this.isTopCoin(gameObject, sourceTray)) {
+    const stackInput = this.resolveStackInput(gameObject);
+    const sourceTray = stackInput?.tray;
+    const anchorCoin = stackInput?.coin;
+    if (!sourceTray || !anchorCoin) {
       return;
     }
 
     if (this.selectedSourceTray && this.selectedSourceTray !== sourceTray) {
-      return;
+      this.clearSelectedCoinStack();
     }
 
     this.audio.play("click");
     this.draggingCoin = gameObject;
     this.dragSourceTray = sourceTray;
-    this.draggedCoinLevel = gameObject.value;
+    this.draggedCoinLevel = sourceTray.coins[sourceTray.coins.length - 1];
     this.draggedCoinCount = this.getFrontStackCount(sourceTray);
     this.draggingStackSprites = this.getFrontStackSprites(sourceTray, this.draggedCoinCount);
     this.dragStackOffsets = [];
-    this.dragOriginalPoint = { x: gameObject.x, y: gameObject.y };
+    this.dragOriginalPoint = { x: anchorCoin.x, y: anchorCoin.y };
     this.dragPointerStart = { x: pointer.x, y: pointer.y };
     this.hand.setVisible(false);
     this.handTween?.stop();
+    this.clearSelectedCoinStackFeedback();
     for (let index = 0; index < this.draggingStackSprites.length; index += 1) {
       const sprite = this.draggingStackSprites[index];
       this.dragStackOffsets.push({
-        x: sprite.x - gameObject.x,
-        y: sprite.y - gameObject.y,
+        x: sprite.x - anchorCoin.x,
+        y: sprite.y - anchorCoin.y,
       });
       sprite.setDepth(DEPTH.coins + 20 + index * 0.02);
     }
@@ -789,13 +856,13 @@ export class Game extends Phaser.Scene {
     }
   }
 
-  handleDragEnd(_pointer, gameObject) {
+  handleDragEnd(pointer, gameObject) {
     if (this.draggingCoin !== gameObject) {
       return;
     }
 
     this.draggingCoin = null;
-    const destinationTray = this.getTrayAtPoint(gameObject.x, gameObject.y);
+    const destinationTray = this.getTrayAtPoint(pointer.x, pointer.y);
     const movedDistance = this.dragOriginalPoint
       ? Phaser.Math.Distance.Between(this.dragOriginalPoint.x, this.dragOriginalPoint.y, gameObject.x, gameObject.y)
       : 0;
@@ -897,6 +964,7 @@ export class Game extends Phaser.Scene {
       this.syncTrayVisual(destinationTray, false);
       this.currentMergeCoinIds = this.getCompletedTrayCoinIds();
       this.updateDealButtonState();
+      this.setGuidedStep(this.stepIndex);
       this.checkDeadlockGameOver();
     };
 
@@ -953,6 +1021,7 @@ export class Game extends Phaser.Scene {
     this.syncTrayVisual(destinationTray, false);
     this.currentMergeCoinIds = this.getCompletedTrayCoinIds();
     this.updateDealButtonState();
+    this.setGuidedStep(this.stepIndex);
     this.checkDeadlockGameOver();
   }
 
@@ -1452,6 +1521,175 @@ export class Game extends Phaser.Scene {
     });
   }
 
+  getGameAwareHandGuide() {
+    if (this.isEnding || this.draggingCoin || this.isTapMovingStack || !this.layout) {
+      return null;
+    }
+
+    const activeValue = this.activeCard?.product?.value;
+    const activeBuyPoint = this.getActiveBuyPoint();
+    const activeCompletedTrayIds = this.getCompletedTrayIdsForLevel(activeValue);
+    if (activeCompletedTrayIds.length && activeBuyPoint && !this.activeCard.product.purchased) {
+      const tray = this.getTrayStateById(activeCompletedTrayIds[0]);
+      return {
+        type: "buy",
+        value: activeValue,
+        start: this.getTrayTopGuidePoint(tray),
+        end: activeBuyPoint,
+      };
+    }
+
+    const completedTrayIds = this.getCompletedTrayCoinIds();
+    if (completedTrayIds.length) {
+      const tray = this.getTrayStateById(completedTrayIds[0]);
+      return {
+        type: "merge",
+        coinIds: completedTrayIds,
+        start: this.getTrayTopGuidePoint(tray),
+        end: this.getMergeButtonGuidePoint(),
+      };
+    }
+
+    const step = GUIDED_STEPS[this.stepIndex];
+    if (
+      step?.type === "buy" &&
+      activeBuyPoint &&
+      !this.activeCard.product.purchased &&
+      this.unlockedProductLevels.has(activeValue)
+    ) {
+      return {
+        type: "buy",
+        value: activeValue,
+        start: { x: activeBuyPoint.x + this.ds(17), y: activeBuyPoint.y + this.ds(10) },
+        end: activeBuyPoint,
+      };
+    }
+
+    const transferGuide = this.getBestCoinTransferGuide();
+    if (transferGuide) {
+      return transferGuide;
+    }
+
+    if (!this.isDealButtonLocked) {
+      return {
+        type: "deal",
+        start: { x: this.dx(111), y: this.dy(418) },
+        end: this.getDealButtonGuidePoint(),
+      };
+    }
+
+    return null;
+  }
+
+  getBestCoinTransferGuide() {
+    let bestMove = null;
+    let bestScore = -1;
+
+    for (let sourceIndex = 0; sourceIndex < this.trayStates.length; sourceIndex += 1) {
+      const sourceTray = this.trayStates[sourceIndex];
+      if (!sourceTray.coins.length || this.isTrayComplete(sourceTray)) {
+        continue;
+      }
+
+      const level = sourceTray.coins[sourceTray.coins.length - 1];
+      const count = this.getFrontStackCount(sourceTray);
+      for (let destinationIndex = 0; destinationIndex < this.trayStates.length; destinationIndex += 1) {
+        const destinationTray = this.trayStates[destinationIndex];
+        if (!this.canDropCoinIntoTray(sourceTray, destinationTray, level, count)) {
+          continue;
+        }
+
+        const score = this.scoreTransferHint(sourceTray, destinationTray, level, count);
+        if (score > bestScore) {
+          bestScore = score;
+          bestMove = { sourceTray, destinationTray, level, count };
+        }
+      }
+    }
+
+    if (!bestMove) {
+      return null;
+    }
+
+    const coin = this.getTopCoinInTray(bestMove.sourceTray);
+    return {
+      type: "transfer",
+      coin,
+      start: this.getTrayTopGuidePoint(bestMove.sourceTray),
+      end: this.getTrayNextSlotGuidePoint(bestMove.destinationTray),
+    };
+  }
+
+  scoreTransferHint(sourceTray, destinationTray, level, count) {
+    const acceptedCount = Math.min(count, TRAY_CAPACITY - destinationTray.coins.length);
+    const createsCompleteTray =
+      destinationTray.coins.length + acceptedCount === TRAY_CAPACITY &&
+      this.isTrayUniformAfterTransfer(destinationTray, level);
+    const sameLevelStack = destinationTray.coins.length > 0;
+    const emptiesSource = sourceTray.coins.length === acceptedCount;
+
+    let score = acceptedCount;
+    if (createsCompleteTray) {
+      score += 1000;
+    }
+    if (sameLevelStack) {
+      score += 100;
+    }
+    if (emptiesSource) {
+      score += 25;
+    }
+    return score;
+  }
+
+  isTrayUniformAfterTransfer(tray, level) {
+    for (let index = 0; index < tray.coins.length; index += 1) {
+      if (tray.coins[index] !== level) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  getActiveBuyPoint() {
+    if (!this.activeCard?.layout) {
+      return null;
+    }
+    return {
+      x: this.dx(this.activeCard.layout.buyX),
+      y: this.dy(this.activeCard.layout.buyY),
+    };
+  }
+
+  getDealButtonGuidePoint() {
+    return { x: this.dx(107), y: this.dy(399) };
+  }
+
+  getMergeButtonGuidePoint() {
+    return { x: this.dx(177), y: this.dy(399) };
+  }
+
+  getTrayTopGuidePoint(tray) {
+    if (!tray) {
+      return this.getDealButtonGuidePoint();
+    }
+
+    const topCoin = this.getTopCoinInTray(tray);
+    if (topCoin) {
+      return { x: topCoin.x, y: topCoin.y };
+    }
+    return this.getTrayNextSlotGuidePoint(tray);
+  }
+
+  getTrayNextSlotGuidePoint(tray) {
+    const point = this.getCellPoint(tray.col, tray.row);
+    const slotIndex = Math.min(tray.coins.length, TRAY_CAPACITY - 1);
+    const offset = this.getTrayCoinOffset(slotIndex);
+    return {
+      x: point.x + this.ds(offset.x),
+      y: point.y + this.ds(offset.y),
+    };
+  }
+
   animateHand(start, end, repeatDrag) {
     if (!start || !end) {
       return;
@@ -1489,19 +1727,39 @@ export class Game extends Phaser.Scene {
 
     const { start, end, repeatDrag } = this.pendingHandGuide;
     this.handTween?.stop();
-    this.hand.setDisplaySize(this.ds(42), this.ds(42)).setVisible(true).setAlpha(1).setPosition(start.x, start.y);
+    this.hand
+      .setDisplaySize(this.ds(42), this.ds(42))
+      .setVisible(true)
+      .setAlpha(0)
+      .setPosition(start.x, start.y);
     this.handTween = this.tweens.add({
       targets: this.hand,
       x: end.x,
       y: end.y,
-      alpha: repeatDrag ? { from: 1, to: 0.42 } : { from: 1, to: 0.72 },
-      duration: repeatDrag ? 880 : 520,
+      alpha: repeatDrag ? 0.92 : 0.82,
+      duration: repeatDrag ? 900 : 620,
       ease: "Sine.InOut",
+      yoyo: true,
       repeat: -1,
-      repeatDelay: 320,
-      onRepeat: () => {
-        this.hand.setAlpha(1).setPosition(start.x, start.y);
-      },
+      hold: repeatDrag ? 120 : 180,
+      repeatDelay: 120,
+    });
+  }
+
+  highlightTrayCoin(coin) {
+    if (!coin) {
+      return;
+    }
+    coin.clearTint().setAlpha(1);
+    this.coinPulseTween?.stop();
+    this.coinPulseTween = this.tweens.add({
+      targets: coin,
+      displayWidth: this.ds(TRAY_COIN_SIZE.w * 1.08),
+      displayHeight: this.ds(TRAY_COIN_SIZE.h * 1.08),
+      duration: 420,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.InOut",
     });
   }
 
@@ -1713,6 +1971,7 @@ export class Game extends Phaser.Scene {
 
     const point = this.getCellPoint(tray.col, tray.row);
     const isComplete = this.isTrayComplete(tray);
+    const stackStartIndex = tray.coins.length ? Math.max(tray.coins.length - this.getFrontStackCount(tray), 0) : TRAY_CAPACITY;
     this.drawTrayReadyBorder(tray.id, point.x, point.y, isComplete && !hideEmpty);
     for (let index = 0; index < sprites.length; index += 1) {
       const sprite = sprites[index];
@@ -1732,12 +1991,18 @@ export class Game extends Phaser.Scene {
         .setAlpha(1);
       sprite.setDepth(DEPTH.coins + index * 0.02);
       sprite.clearTint();
-      if (index === tray.coins.length - 1) {
+      if (index >= stackStartIndex && index < tray.coins.length) {
         sprite.setInteractive({ cursor: "pointer" });
         this.input.setDraggable(sprite);
       } else {
         sprite.disableInteractive();
       }
+    }
+
+    if (this.selectedSourceTray === tray) {
+      this.selectedCoinCount = this.getFrontStackCount(tray);
+      this.selectedStackSprites = this.getFrontStackSprites(tray, this.selectedCoinCount);
+      this.showSelectedCoinStackFeedback();
     }
   }
 
@@ -1804,6 +2069,24 @@ export class Game extends Phaser.Scene {
       }
     }
     return null;
+  }
+
+  resolveStackInput(gameObject) {
+    if (!gameObject) {
+      return null;
+    }
+
+    if (gameObject.trayId && typeof gameObject.slotIndex !== "number") {
+      const tray = this.getTrayStateById(gameObject.trayId);
+      const coin = this.getTopCoinInTray(tray);
+      return coin ? { tray, coin } : null;
+    }
+
+    const tray = this.getTrayStateByCoin(gameObject);
+    if (!this.isFrontStackCoin(gameObject, tray)) {
+      return null;
+    }
+    return { tray, coin: gameObject };
   }
 
   canDropCoinIntoTray(sourceTray, destinationTray, level, count = 1) {
@@ -1879,6 +2162,15 @@ export class Game extends Phaser.Scene {
     return Boolean(coin && tray && coin.slotIndex === tray.coins.length - 1);
   }
 
+  isFrontStackCoin(coin, tray) {
+    if (!coin || !tray?.coins.length) {
+      return false;
+    }
+
+    const stackStartIndex = Math.max(tray.coins.length - this.getFrontStackCount(tray), 0);
+    return coin.slotIndex >= stackStartIndex && coin.slotIndex < tray.coins.length;
+  }
+
   getFrontStackCount(tray) {
     if (!tray?.coins.length) {
       return 0;
@@ -1933,9 +2225,13 @@ export class Game extends Phaser.Scene {
   }
 
   getTrayCoinOffset(index) {
+    const firstY = TRAY_COIN_INNER_BOUNDS.top + TRAY_COIN_SIZE.h * 0.5;
+    const lastY = TRAY_COIN_INNER_BOUNDS.bottom - TRAY_COIN_SIZE.h * 0.5;
+    const usableHeight = lastY - firstY;
+    const step = TRAY_CAPACITY > 1 ? usableHeight / (TRAY_CAPACITY - 1) : 0;
     return {
       x: 0,
-      y: -20 + index * 4.2,
+      y: firstY + index * step,
     };
   }
 

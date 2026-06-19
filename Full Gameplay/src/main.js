@@ -28,6 +28,7 @@ const gameConfig = {
   transparent: true,
   render: {
     antialias: true,
+    antialiasing: true,
     antialiasGL: true,
     pixelArt: false,
     roundPixels: false,
