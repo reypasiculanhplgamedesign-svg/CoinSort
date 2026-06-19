@@ -11,20 +11,20 @@ import { audioMergeSuccessMP3 } from "../../media-coin-sort/audio_merge-success.
 import { audioMissWAV } from "../../media-coin-sort/audio_miss.wav.js";
 import { audioPopWAV } from "../../media-coin-sort/audio_pop.wav.js";
 import { audioWrongAnswerWAV } from "../../media-coin-sort/audio_Wrong Answer.wav.js";
-import { imagesBuyButtonWEBP } from "../../media-coin-sort/images_buy-button.webp.js";
+import { imagesBuyButtonPNG } from "../../media-coin-sort/images_buy-button.png.js";
 import { imagesCoinTrayWEBP } from "../../media-coin-sort/images_coin-tray.webp.js";
-import { imagesCoinsCoin1WEBP } from "../../media-coin-sort/images_coins_coin-1.webp.js";
-import { imagesCoinsCoin2WEBP } from "../../media-coin-sort/images_coins_coin-2.webp.js";
-import { imagesCoinsCoin3WEBP } from "../../media-coin-sort/images_coins_coin-3.webp.js";
-import { imagesCoinsCoin4WEBP } from "../../media-coin-sort/images_coins_coin-4.webp.js";
-import { imagesCoinsCoin5WEBP } from "../../media-coin-sort/images_coins_coin-5.webp.js";
-import { imagesCoinsCoin6WEBP } from "../../media-coin-sort/images_coins_coin-6.webp.js";
-import { imagesCoinsCoinSolo1WEBP } from "../../media-coin-sort/images_coins_coin-solo-1.webp.js";
-import { imagesCoinsCoinSolo2WEBP } from "../../media-coin-sort/images_coins_coin-solo-2.webp.js";
-import { imagesCoinsCoinSolo3WEBP } from "../../media-coin-sort/images_coins_coin-solo-3.webp.js";
-import { imagesCoinsCoinSolo4WEBP } from "../../media-coin-sort/images_coins_coin-solo-4.webp.js";
-import { imagesCoinsCoinSolo5WEBP } from "../../media-coin-sort/images_coins_coin-solo-5.webp.js";
-import { imagesCoinsCoinSolo6WEBP } from "../../media-coin-sort/images_coins_coin-solo-6.webp.js";
+import { imagesCoinsCoin1PNG } from "../../media-coin-sort/images_coins_coin-1.png.js";
+import { imagesCoinsCoin2PNG } from "../../media-coin-sort/images_coins_coin-2.png.js";
+import { imagesCoinsCoin3PNG } from "../../media-coin-sort/images_coins_coin-3.png.js";
+import { imagesCoinsCoin4PNG } from "../../media-coin-sort/images_coins_coin-4.png.js";
+import { imagesCoinsCoin5PNG } from "../../media-coin-sort/images_coins_coin-5.png.js";
+import { imagesCoinsCoin6PNG } from "../../media-coin-sort/images_coins_coin-6.png.js";
+import { imagesCoinsCoinSolo1PNG } from "../../media-coin-sort/images_coins_coin-solo-1.png.js";
+import { imagesCoinsCoinSolo2PNG } from "../../media-coin-sort/images_coins_coin-solo-2.png.js";
+import { imagesCoinsCoinSolo3PNG } from "../../media-coin-sort/images_coins_coin-solo-3.png.js";
+import { imagesCoinsCoinSolo4PNG } from "../../media-coin-sort/images_coins_coin-solo-4.png.js";
+import { imagesCoinsCoinSolo5PNG } from "../../media-coin-sort/images_coins_coin-solo-5.png.js";
+import { imagesCoinsCoinSolo6PNG } from "../../media-coin-sort/images_coins_coin-solo-6.png.js";
 import { imagesDealButtonWEBP } from "../../media-coin-sort/images_deal-button.webp.js";
 import { imagesFoodsBreadWEBP } from "../../media-coin-sort/images_foods_bread.webp.js";
 import { imagesFoodsCerealWEBP } from "../../media-coin-sort/images_foods_cereal.webp.js";
@@ -52,23 +52,23 @@ const imageAssets = [
   { key: "logo", data: imagesLogoWEBP },
   { key: "dealButton", data: imagesDealButtonWEBP },
   { key: "mergeButton", data: imagesMergeButtonWEBP },
-  { key: "buyButton", data: imagesBuyButtonWEBP },
+  { key: "buyButton", data: imagesBuyButtonPNG },
   { key: "playNowButton", data: imagesPlayNowButtonWEBP },
   { key: "coinTray", data: imagesCoinTrayWEBP },
   { key: "handPointer", data: imagesHandPointerWEBP },
   { key: "starBurst", data: imagesStarBurstWEBP },
-  { key: "coin1", data: imagesCoinsCoin1WEBP },
-  { key: "coin2", data: imagesCoinsCoin2WEBP },
-  { key: "coin3", data: imagesCoinsCoin3WEBP },
-  { key: "coin4", data: imagesCoinsCoin4WEBP },
-  { key: "coin5", data: imagesCoinsCoin5WEBP },
-  { key: "coin6", data: imagesCoinsCoin6WEBP },
-  { key: "coinSolo1", data: imagesCoinsCoinSolo1WEBP },
-  { key: "coinSolo2", data: imagesCoinsCoinSolo2WEBP },
-  { key: "coinSolo3", data: imagesCoinsCoinSolo3WEBP },
-  { key: "coinSolo4", data: imagesCoinsCoinSolo4WEBP },
-  { key: "coinSolo5", data: imagesCoinsCoinSolo5WEBP },
-  { key: "coinSolo6", data: imagesCoinsCoinSolo6WEBP },
+  { key: "coin1", data: imagesCoinsCoin1PNG },
+  { key: "coin2", data: imagesCoinsCoin2PNG },
+  { key: "coin3", data: imagesCoinsCoin3PNG },
+  { key: "coin4", data: imagesCoinsCoin4PNG },
+  { key: "coin5", data: imagesCoinsCoin5PNG },
+  { key: "coin6", data: imagesCoinsCoin6PNG },
+  { key: "coinSolo1", data: imagesCoinsCoinSolo1PNG },
+  { key: "coinSolo2", data: imagesCoinsCoinSolo2PNG },
+  { key: "coinSolo3", data: imagesCoinsCoinSolo3PNG },
+  { key: "coinSolo4", data: imagesCoinsCoinSolo4PNG },
+  { key: "coinSolo5", data: imagesCoinsCoinSolo5PNG },
+  { key: "coinSolo6", data: imagesCoinsCoinSolo6PNG },
   { key: "foodBread", data: imagesFoodsBreadWEBP },
   { key: "foodCereal", data: imagesFoodsCerealWEBP },
   { key: "foodCheese", data: imagesFoodsCheeseWEBP },
@@ -111,7 +111,22 @@ export class Preloader extends Phaser.Scene {
     LoadBase64Audio(this, audioAssets);
   }
 
+  applySmoothTextureFiltering() {
+    const linearFilter = Phaser.Textures?.FilterMode?.LINEAR;
+    if (typeof linearFilter === "undefined") {
+      return;
+    }
+
+    imageAssets.forEach(({ key }) => {
+      const texture = this.textures.get(key);
+      if (texture && typeof texture.setFilter === "function") {
+        texture.setFilter(linearFilter);
+      }
+    });
+  }
+
   base64LoaderComplete() {
+    this.applySmoothTextureFiltering();
     adReady();
     this.scene.start("Game");
   }

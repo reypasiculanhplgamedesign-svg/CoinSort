@@ -8,16 +8,30 @@ import { Preloader } from "./scenes/Preloader";
 import { config } from "./config.js";
 import { EndScene } from "./scenes/EndScene.js";
 
+function getDevicePixelRatio() {
+  if (typeof window === "undefined") {
+    return 1;
+  }
+  return Math.max(window.devicePixelRatio || 1, 1);
+}
+
+function toRenderPixels(value) {
+  return Math.max(Math.round(value * getDevicePixelRatio()), 1);
+}
+
 const gameConfig = {
   type: Phaser.AUTO,
   parent: "ad-container",
-  width: 1080,
-  height: 1920,
+  width: toRenderPixels(1080),
+  height: toRenderPixels(1920),
   backgroundColor: "transparent",
   transparent: true,
   render: {
     antialias: true,
+    antialiasGL: true,
     pixelArt: false,
+    roundPixels: false,
+    powerPreference: "high-performance",
   },
   scale: {
     mode: Phaser.Scale.NONE,
@@ -62,8 +76,13 @@ function bindResponsiveResize(game) {
       app.style.width = `${width}px`;
       app.style.height = `${height}px`;
     }
+    if (game.canvas) {
+      game.canvas.style.width = "100%";
+      game.canvas.style.height = "100%";
+      game.canvas.style.imageRendering = "auto";
+    }
 
-    game.scale.resize(width, height);
+    game.scale.resize(toRenderPixels(width), toRenderPixels(height));
     game.scale.refresh();
   };
 
